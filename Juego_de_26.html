@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Misión Palmar · Juego del Proyecto Integrador</title>
+<style>
+:root{--bg:#f4efe3;--sf:#fffdf7;--ink:#1f2a44;--mut:#5d6578;--ln:#d9d0bb;--ac:#c2410c;--ok:#2f7a45;--okbg:#e2f1e5;--bad:#b3261e;--badbg:#fbe4e1;--gold:#e0a100;--hi:#fff3d1;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151d;--sf:#1c212d;--ink:#e8e6df;--mut:#9aa3b8;--ln:#343b4f;--ac:#f28a5b;--ok:#7fc68f;--okbg:#1d3325;--bad:#ff8a80;--badbg:#3a1f1d;--gold:#f5c542;--hi:#3a3220}}
+:root[data-theme="dark"]{--bg:#12151d;--sf:#1c212d;--ink:#e8e6df;--mut:#9aa3b8;--ln:#343b4f;--ac:#f28a5b;--ok:#7fc68f;--okbg:#1d3325;--bad:#ff8a80;--badbg:#3a1f1d;--gold:#f5c542;--hi:#3a3220}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style",serif;line-height:1.15;margin:0 0 .4em}
+h1{font-size:2.1rem}h2{font-size:1.45rem}
+.card{background:var(--sf);border:2px solid var(--ink);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:4px 4px 0 var(--ink)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;font-weight:700}
+.hearts{font-size:1.25rem;letter-spacing:2px;color:var(--bad)}
+.bar{height:12px;background:var(--ln);border-radius:8px;overflow:hidden;margin-bottom:14px}.bar i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.kick{font:700 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ac);margin:0 0 4px}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--ac);color:#fff;border:2px solid var(--ink);border-radius:10px;padding:11px 18px;font-weight:700;box-shadow:3px 3px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}.btn.ghost{background:var(--sf);color:var(--ink)}
+.opt{display:block;width:100%;text-align:left;background:var(--sf);border:2px solid var(--ink);border-radius:10px;padding:11px 14px;margin-bottom:9px}
+.opt:hover:not(:disabled){background:var(--hi)}.opt.ok{background:var(--okbg);border-color:var(--ok)}.opt.no{background:var(--badbg);border-color:var(--bad);opacity:.75}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.ln{display:block;width:100%;text-align:left;background:#1b1f2b;color:#e8e6df;border:2px solid transparent;border-radius:6px;padding:6px 10px;margin-bottom:4px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre}
+.ln:hover:not(:disabled){border-color:var(--gold)}.ln.ok{border-color:var(--ok);background:#14301c}.ln.no{border-color:var(--bad);background:#3a1f1d}
+.slot{min-height:56px;border:2px dashed var(--mut);border-radius:10px;padding:6px;margin-bottom:10px}
+.slot:empty::before{content:"Tocá las líneas en el orden correcto";color:var(--mut);font-size:14px;padding:4px}
+.fb{border-radius:10px;padding:10px 14px;margin:10px 0;font-size:15px}.fb.ok{background:var(--okbg);border-left:5px solid var(--ok)}.fb.no{background:var(--badbg);border-left:5px solid var(--bad)}
+.map{display:grid;gap:10px}
+.node{display:flex;align-items:center;gap:12px;text-align:left;width:100%;background:var(--sf);border:2px solid var(--ink);border-radius:12px;padding:12px 14px}
+.node:disabled{opacity:.45;cursor:not-allowed}.node .ic{font-size:1.9rem}.node b{display:block}.node small{color:var(--mut)}.stars{margin-left:auto;color:var(--gold);font-size:1.2rem;letter-spacing:2px;white-space:nowrap}
+.big{font-size:3.2rem;line-height:1}
+input[type=text],input[type=email]{font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--ink);border-radius:8px;padding:9px;width:100%}
+input[readonly]{background:var(--ln);cursor:not-allowed}
+.dip{text-align:center;border:4px double var(--gold)}
+.version-tag{display:inline-block;background:var(--hi);color:var(--ac);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script>
+// ============================================================
+// BANCO DE PREGUNTAS - Múltiples variantes por cada slot
+// El sistema elegirá una versión única por alumno según su ID
+// ============================================================
+
+const BANK = {
+  // NIVEL 1: DATOS
+  datos: {
+    n: "Datos", ic: "🗃️", t: "El almacén desordenado", badge: "Maestro de las listas",
+    story: "El almacén de don Ramón anota todo en cuadernos y se pierde el stock. Armá la estructura que guarda sus productos.",
+    // 4 slots de preguntas, cada uno con varias variantes
+    slots: [
+      // SLOT 1: Tipo "c" (elegir)
+      [
+        { t:"c", q:"Querés guardar muchos productos, cada uno con nombre, precio y stock. ¿Qué estructura usás?", o:["Una lista de diccionarios","Un solo número entero","Un texto muy largo","Un diccionario por cada letra"], e:"Cada producto es un diccionario y todos viven dentro de una lista." },
+        { t:"c", q:"Necesitás registrar 100 clientes con nombre, dirección y teléfono. ¿Qué usás?", o:["Una lista de diccionarios","Una variable por cada cliente","Un único string gigante","Una tupla inmutable"], e:"Los diccionarios agrupan los datos de cada cliente y la lista los contiene a todos." },
+        { t:"c", q:"Para guardar las notas de 30 alumnos con sus materias, ¿qué conviene?", o:["Lista de diccionarios con nombre y notas","Un solo diccionario con todas las notas mezcladas","Una lista de strings","Un número entero"], e:"Cada alumno es un diccionario y la lista los agrupa." },
+        { t:"c", q:"¿Cuál es la mejor forma de guardar el menú de un restaurante (plato, precio, categoría)?", o:["Lista de diccionarios con esas claves","Una lista de números","Un solo string con todo","Un entero por cada plato"], e:"Los diccionarios permiten nombrar cada dato: plato, precio, categoría." }
+      ],
+      // SLOT 2: Tipo "o" (ordenar)
+      [
+        { t:"o", q:"Ordená la función que da de alta un producto.", s:["inventario = []","def agregar_producto():","    nombre = input(\"Nombre: \")","    precio = float(input(\"Precio: \"))","    producto = {\"nombre\": nombre, \"precio\": precio}","    inventario.append(producto)"], e:"Se pide cada dato, se arma el diccionario y recién entonces se agrega a la lista." },
+        { t:"o", q:"Ordená la función que muestra todos los productos.", s:["def listar(inventario):","    for producto in inventario:","        print(producto[\"nombre\"])","        print(f\"Precio: {producto['precio']}\")","        print(\"---\")"], e:"El for recorre la lista y cada producto se muestra con sus claves." },
+        { t:"o", q:"Ordená el código que busca un producto por nombre.", s:["def buscar(inventario, nombre):","    for p in inventario:","        if p[\"nombre\"] == nombre:","            return p","    return None"], e:"Se recorre la lista comparando el nombre y se devuelve el diccionario encontrado." },
+        { t:"o", q:"Ordená la función que borra un producto.", s:["def borrar(inventario, nombre):","    for i, p in enumerate(inventario):","        if p[\"nombre\"] == nombre:","            inventario.pop(i)","            return True","    return False"], e:"enumerate da el índice, pop lo borra y se retorna True si se encontró." }
+      ],
+      // SLOT 3: Tipo "b" (encontrar el error)
+      [
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["def agregar(nombre, precio):","    producto = {\"nombre\": nombre, \"precio\": precio}","    inventario.add(producto)","    print(\"Listo\")"], b:2, e:"Las listas no tienen add: se usa append." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["def mostrar(p):","    print(p.nombre)","    print(p['precio'])","    print(\"---\")"], b:1, e:"Los diccionarios se acceden con p['clave'], no con punto." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["inventario = []","producto = {nombre: 'Pan', precio: 100}","inventario.append(producto)","print(inventario)"], b:1, e:"Las claves de diccionario van entre comillas: \"nombre\", no nombre." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["for p in inventario:","    print(p[nombre])","    print(p['precio'])"], b:1, e:"Faltan las comillas en la clave: debe ser p['nombre']." }
+      ],
+      // SLOT 4: Tipo "c" (elegir)
+      [
+        { t:"c", q:"¿Qué devuelve inventario[0][\"stock\"]?", o:["El stock del primer producto","El stock de todos los productos","Un error siempre","El nombre del último producto"], e:"[0] elige el primer diccionario y [\"stock\"] elige esa clave." },
+        { t:"c", q:"¿Qué hace len(inventario)?", o:["Devuelve cuántos productos hay","Borra el inventario","Muestra el primer producto","Suma los precios"], e:"len() cuenta la cantidad de elementos de una lista." },
+        { t:"c", q:"Si producto = {\"nombre\": \"Pan\"}, ¿qué devuelve producto.get(\"precio\", 0)?", o:["0, porque la clave no existe","Un error","\"Pan\"","None siempre"], e:"get() devuelve el valor por defecto (0) si la clave no está." },
+        { t:"c", q:"¿Qué devuelve list(producto.keys()) si producto = {\"a\":1, \"b\":2}?", o:["['a', 'b']","[1, 2]","['a:1', 'b:2']","Error"], e:"keys() devuelve las claves del diccionario." }
+      ]
+    ]
+  },
+  
+  // NIVEL 2: PYTHON
+  python: {
+    n: "Python", ic: "🐍", t: "Cazador de bugs", badge: "Domador de errores",
+    story: "El programa de la biblioteca se cuelga con cualquier dato raro. Encontrá los errores y blindá las validaciones.",
+    slots: [
+      [
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["precio = float(input(\"Precio: \"))","if precio = 0:","    print(\"El precio no puede ser cero\")"], b:1, e:"Para comparar se usa == ; un solo = es una asignación." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["nombre = input(\"Nombre: \")","if nombre == \"\":","    print nombre vacío","    return"], b:2, e:"Falta paréntesis en print: print(\"nombre vacío\")." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["edad = int(input(\"Edad: \"))","if edad < 0","    print(\"Edad inválida\")"], b:2, e:"Falta la sangría (indentación) en el print." },
+        { t:"b", q:"Tocá la línea que tiene el error.", l:["def sumar(a, b)","    return a + b","resultado = sumar(3, 5)"], b:0, e:"Falta el ':' al final de la definición de la función." }
+      ],
+      [
+        { t:"c", q:"¿Qué error aparece al ejecutar int(\"abc\")?", o:["ValueError","KeyError","IndexError","NameError"], e:"El tipo es correcto (texto) pero el valor no se puede convertir." },
+        { t:"c", q:"¿Qué error da mi_lista[10] si la lista tiene 3 elementos?", o:["IndexError","ValueError","TypeError","KeyError"], e:"El índice está fuera del rango de la lista." },
+        { t:"c", q:"¿Qué error aparece al usar una variable que no existe?", o:["NameError","ValueError","SyntaxError","TypeError"], e:"Python no encuentra el nombre de la variable." },
+        { t:"c", q:"¿Qué error da \"hola\" + 5?", o:["TypeError","ValueError","SyntaxError","IndexError"], e:"No se puede concatenar string con int sin convertir." }
+      ],
+      [
+        { t:"o", q:"Ordená la función que pide un número y no se rompe.", s:["def pedir_numero():","    while True:","        try:","            valor = float(input(\"Número: \"))","            return valor","        except ValueError:","            print(\"Error: ingrese un número\")"], e:"El while repite hasta que el dato sea válido; el return corta el bucle." },
+        { t:"o", q:"Ordená la validación de un precio positivo.", s:["def pedir_precio():","    while True:","        try:","            p = float(input(\"Precio: \"))","            if p > 0: return p","            print(\"Debe ser positivo\")","        except ValueError:","            print(\"Ingrese un número\")"], e:"Se pide, se convierte, se valida que sea positivo y se retorna." },
+        { t:"o", q:"Ordená el menú con validación.", s:["while True:","    print(\"1. Alta  2. Baja  3. Salir\")","    op = input(\"Opción: \")","    if op == \"3\": break","    if op not in (\"1\",\"2\",\"3\"):","        print(\"Opción inválida\")"], e:"El menú se repite hasta elegir salir; se valida la opción." },
+        { t:"o", q:"Ordená el try/except para leer un archivo.", s:["try:","    f = open(\"datos.txt\")","    contenido = f.read()","    f.close()","except FileNotFoundError:","    print(\"El archivo no existe\")"], e:"Se intenta abrir y leer; si no existe, se captura el error." }
+      ],
+      [
+        { t:"c", q:"Python te marca IndentationError. ¿Qué pasó?", o:["La sangría de las líneas no es consistente","Falta instalar Python","Una variable no existe","El archivo está vacío"], e:"Usá siempre 4 espacios por nivel y no mezcles tabs con espacios." },
+        { t:"c", q:"¿Qué hace el bucle while True?", o:["Se repite infinitamente hasta que un break lo corte","Se ejecuta una sola vez","Da error siempre","Es lo mismo que for"], e:"while True es un bucle infinito controlado con break." },
+        { t:"c", q:"¿Qué devuelve input() siempre?", o:["Un string","Un número","Un entero","Depende de lo que escriba"], e:"input() siempre devuelve texto, hay que convertirlo." },
+        { t:"c", q:"¿Qué hace return en una función?", o:["Devuelve un valor y sale de la función","Imprime algo en pantalla","Borra la función","Nada, es opcional"], e:"return termina la función y devuelve un valor al llamador." }
+      ]
+    ]
+  },
+  
+  // NIVEL 3: GIT
+  git: {
+    n: "Git", ic: "🌿", t: "El repositorio del equipo", badge: "Guardián del historial",
+    story: "Tu grupo pisó el trabajo de un compañero. Recuperá el orden con el flujo correcto de Git.",
+    slots: [
+      [
+        { t:"o", q:"Ordená el ciclo diario de trabajo con Git.", s:["git pull","git status","git add main.py","git commit -m \"Agrega búsqueda por nombre\"","git push"], e:"pull → trabajar → status → add → commit → push." },
+        { t:"o", q:"Ordená los pasos para crear un repo nuevo.", s:["git init","git add .","git commit -m \"Primer commit\"","git remote add origin URL","git push -u origin main"], e:"Se inicializa, se agregan archivos, se commitea y se sube." },
+        { t:"o", q:"Ordená cómo resolver un conflicto.", s:["git pull","Abrir el archivo con conflictos","Editar y dejar el código correcto","git add archivo.py","git commit -m \"Resuelve conflicto\"","git push"], e:"Se trae, se edita manualmente, se commitea la resolución y se sube." },
+        { t:"o", q:"Ordená los comandos para ver el historial.", s:["git log","git log --oneline","git show <hash>","git diff HEAD~1"], e:"log muestra commits, oneline los resume, show detalla uno y diff compara." }
+      ],
+      [
+        { t:"c", q:"Tu git push fue rechazado porque alguien subió antes. ¿Qué hacés?", o:["git pull y después git push","Borrar la carpeta del proyecto","Forzar el push sin mirar","Esperar una semana"], e:"Primero traés lo nuevo con pull, resolvés si hay conflicto y volvés a subir." },
+        { t:"c", q:"¿Qué comando muestra los archivos modificados?", o:["git status","git log","git push","git init"], e:"status muestra el estado actual del repositorio." },
+        { t:"c", q:"¿Para qué sirve .gitignore?", o:["Para ignorar archivos que no deben subirse al repo","Para borrar el historial","Para cambiar de rama","Para clonar un repo"], e:"Permite excluir archivos temporales, contraseñas, etc." },
+        { t:"c", q:"¿Qué hace git clone?", o:["Copia un repo remoto a tu computadora","Borra un repo","Crea un commit","Sube cambios"], e:"clone trae una copia completa del repositorio remoto." }
+      ],
+      [
+        { t:"c", q:"¿Cuál es el mejor mensaje de commit?", o:["Agrega validación de precio en el alta","cambios","arreglos varios","asdf"], e:"Un buen mensaje está en presente y dice qué cambió." },
+        { t:"c", q:"¿Qué es una rama (branch)?", o:["Una versión paralela del código para trabajar sin afectar main","Una copia de seguridad","Un archivo viejo","Un tipo de commit"], e:"Las ramas permiten trabajar en funcionalidades aisladas." },
+        { t:"c", q:"¿Qué significa HEAD en Git?", o:["El commit actual en el que estás parado","El primer commit","El último push","La rama principal"], e:"HEAD es un puntero al commit actual." },
+        { t:"c", q:"¿Qué hace git stash?", o:["Guarda cambios temporales sin commitearlos","Borra todo","Sube al remoto","Crea una rama"], e:"stash guarda cambios pendientes para recuperarlos después." }
+      ],
+      [
+        { t:"c", q:"¿Qué ejecutás ANTES de empezar a trabajar?", o:["git pull","git push","git commit","git restore"], e:"Así partís de la última versión del grupo y evitás conflictos." },
+        { t:"c", q:"¿Qué es un merge?", o:["Unir los cambios de una rama con otra","Borrar una rama","Crear un commit","Clonar un repo"], e:"merge integra el trabajo de ramas diferentes." },
+        { t:"c", q:"¿Qué es un fork en GitHub?", o:["Una copia personal de un repo de otro usuario","Un error","Una rama local","Un tipo de commit"], e:"fork clona un repo ajeno a tu cuenta para trabajar libremente." },
+        { t:"c", q:"¿Qué es un pull request?", o:["Una solicitud para integrar tus cambios al repo principal","Un error de push","Una rama nueva","Un tipo de commit"], e:"El PR permite revisar y discutir cambios antes de integrarlos." }
+      ]
+    ]
+  },
+  
+  // NIVEL 4: IA
+  ia: {
+    n: "IA", ic: "🤖", t: "La IA tutora", badge: "Tutor de la IA",
+    story: "Una IA puede ayudarte a aprender o a no aprender nada. Elegí bien cómo la usás.",
+    slots: [
+      [
+        { t:"c", q:"¿Cuál es un prompt válido (Nivel 1)?", o:["Explicame con un ejemplo la diferencia entre lista y diccionario","Hacé el sistema completo de mi almacén","Resolvé la consigna del proyecto","Pasame el código final listo para entregar"], e:"Los otros tres piden la solución completa: son Nivel 3, prohibido." },
+        { t:"c", q:"¿Cuál es un buen prompt de Nivel 1?", o:["¿Qué es una función en Python y para qué sirve? Dame un ejemplo simple","Escribí mi proyecto entero","Hacéme la tarea","Resolvé todo"], e:"Pide explicación con ejemplo: es tutor, no solucionador." },
+        { t:"c", q:"¿Cuál es un prompt adecuado?", o:["¿Por qué mi código da KeyError en esta línea? Explicame sin dar la solución","Hacéme el código","No entiendo nada, arreglalo","Entregame el final"], e:"Contexto + pregunta específica + restricción: prompt correcto." },
+        { t:"c", q:"¿Qué prompt respeta las reglas del aula?", o:["Mirá este fragmento. No des la solución, hacéme 3 preguntas guía","Resolvé el ejercicio","Pasame la respuesta","Hacelo vos"], e:"Pedir preguntas guía es usar la IA como tutora." }
+      ],
+      [
+        { t:"c", q:"Te sale un IndexError. ¿Qué prompt sigue la fórmula de tutor?", o:["Este es mi fragmento y el error. No des la solución: hacé preguntas guía","Arreglalo","Escribí todo de nuevo","Dame el programa terminado"], e:"Rol, contexto, tarea y restricción: pedís pistas, no la solución." },
+        { t:"c", q:"No entendés un concepto. ¿Qué le pedís a la IA?", o:["Explicámelo como si tuviera 12 años con una analogía","Dame la definición de la Wikipedia","Resolvé el ejercicio","Escribí el código"], e:"Pedir analogías y niveles ayuda a comprender de verdad." },
+        { t:"c", q:"¿Cómo usar la IA para repasar antes de la defensa?", o:["Pedile que te haga preguntas sobre mi código y evalúe mis respuestas","Pedile que haga la defensa por vos","No usarla","Pedile el final"], e:"Simular la defensa con preguntas es un uso excelente." },
+        { t:"c", q:"¿Qué hacer si la IA te da una explicación confusa?", o:["Pedile que lo explique de otra forma o con otro ejemplo","Aceptarla como verdad absoluta","Rendirse","Cambiar de tema"], e:"La IA se puede re-pedir con otros términos hasta entender." }
+      ],
+      [
+        { t:"c", q:"La IA usa una función de Python que no encontrás. ¿Qué hacés?", o:["La busco en docs.python.org y la pruebo","La copio sin probarla","Asumo que existe","Se la entrego al docente así"], e:"Las IA pueden inventar funciones. Verificar en la documentación oficial es la regla Nº 4." },
+        { t:"c", q:"La IA te da un código que no compila. ¿Qué hacés?", o:["Leo el error, lo analizo y lo corrijo entendiendo el porqué","Lo entrego igual","Borro todo","Culpo a la IA"], e:"El error es una oportunidad de aprendizaje, no un freno." },
+        { t:"c", q:"¿Qué hacer si la IA se contradice?", o:["Consultar la documentación oficial y probar en el intérprete","Creer en la última respuesta","No usar más la IA","Entregar las dos"], e:"La fuente de verdad es la documentación y la práctica." },
+        { t:"c", q:"La IA te sugiere una librería rara. ¿Qué hacés?", o:["Investigo si es real y segura antes de usarla","La instalo ya","La ignoro siempre","La recomiendo sin probar"], e:"Siempre verificar origen, seguridad y documentación." }
+      ],
+      [
+        { t:"c", q:"¿Qué va en una buena entrada de bitácora?", o:["El prompt exacto, un resumen y mi análisis con mis palabras","Solo la respuesta completa pegada","Nada, si me salió bien","Una captura sin explicación"], e:"Si no podés explicarlo con tus palabras, todavía no lo aprendiste." },
+        { t:"c", q:"¿Qué NO debe hacerse con la IA en el proyecto?", o:["Pedirle que resuelva la consigna completa","Usarla para entender conceptos","Pedirle explicaciones con ejemplos","Simular una defensa oral"], e:"La IA es tutora, no reemplaza el aprendizaje propio." },
+        { t:"c", q:"¿Cómo verificar si la IA dijo la verdad?", o:["Probando el código y consultando fuentes oficiales","Creerle siempre","Preguntándole de nuevo","Ignorándola"], e:"La verificación activa es clave contra las alucinaciones." },
+        { t:"c", q:"¿Qué es una alucinación de la IA?", o:["Cuando inventa información que parece real pero es falsa","Cuando responde rápido","Cuando da un código largo","Cuando usa emojis"], e:"Las IA pueden generar contenido plausible pero incorrecto." }
+      ]
+    ]
+  },
+  
+  // NIVEL 5: JEFE (Defensa oral)
+  jefe: {
+    n: "Jefe", ic: "🎓", t: "La defensa oral", badge: "Defensor del proyecto",
+    story: "Llegó el día de la exposición. El docente te hace preguntas sobre tu propio código. ¡Que no te traicione la memoria!",
+    slots: [
+      [
+        { t:"c", q:"¿Para qué sirve dividir el programa en funciones?", o:["Cada función hace una sola tarea y el código es más fácil de leer y probar","Para que el programa corra más rápido siempre","Para que ocupe más líneas","No sirve para nada"], e:"Modularizar ordena el código y permite reutilizarlo y probarlo por partes." },
+        { t:"c", q:"¿Qué ventaja tiene usar funciones?", o:["Permiten reutilizar código sin copiar y pegar","Hacen el programa más lento","Ocupan más memoria","Complican todo"], e:"Reutilizar evita duplicar y facilita el mantenimiento." },
+        { t:"c", q:"¿Qué es un parámetro de función?", o:["Un valor de entrada que la función recibe para trabajar","El resultado final","Un error","Una variable global"], e:"Los parámetros son los datos que le pasamos a la función." },
+        { t:"c", q:"¿Qué hace return en una función?", o:["Devuelve un valor al que la llamó","Imprime en pantalla","Borra la función","Nada"], e:"return finaliza la función y entrega un resultado." }
+      ],
+      [
+        { t:"c", q:"¿Qué hace while True junto con un break?", o:["Repite hasta que se cumple la condición de salida","Se ejecuta una sola vez","Borra la lista","Cierra Python"], e:"El menú se repite hasta que el usuario elige Salir y se ejecuta el break." },
+        { t:"c", q:"¿Cuándo termina un while True?", o:["Cuando se ejecuta un break","Nunca","Al cabo de 10 vueltas","Cuando el usuario escribe algo"], e:"break es la única forma de salir de un while True." },
+        { t:"c", q:"¿Qué diferencia hay entre while y for?", o:["while repite mientras se cumpla una condición; for recorre una secuencia","Son iguales","for es más lento","while no existe"], e:"while es condicional, for es iterativo sobre colecciones." },
+        { t:"c", q:"¿Qué es un bucle infinito accidental?", o:["Uno que nunca termina porque la condición nunca cambia","Uno muy rápido","Uno con muchas variables","Uno con print"], e:"Hay que asegurarse de que la condición pueda volverse falsa." }
+      ],
+      [
+        { t:"c", q:"¿Por qué hay que validar lo que escribe el usuario?", o:["Para que el programa no se rompa con datos incorrectos","Para que el usuario escriba menos","Por adorno","Porque Python lo exige siempre"], e:"Un programa robusto resiste texto donde va un número, vacíos y negativos." },
+        { t:"c", q:"¿Qué pasa si no validás un input numérico?", o:["El programa puede romperse si el usuario escribe texto","Nada","Se guarda como número","Python lo corrige solo"], e:"Sin validación, cualquier error del usuario crashea el programa." },
+        { t:"c", q:"¿Qué es un valor centinela?", o:["Un valor especial que indica el fin de la entrada","Un error","Una variable global","Un tipo de dato"], e:"Se usa para cortar bucles, como -1 o \"salir\"." },
+        { t:"c", q:"¿Cómo validar que un número sea positivo?", o:["Con un while que pida de nuevo si es menor a 0","Con un print","Con un input","No se puede"], e:"Se repite el pedido hasta que se cumpla la condición." }
+      ],
+      [
+        { t:"c", q:"Cerrás el programa. ¿Qué pasa con los datos de la lista?", o:["Se pierden: viven solo en memoria","Se guardan solos en la nube","Se envían al docente","Quedan para siempre"], e:"Sin archivos ni base de datos, la memoria se borra al cerrar." },
+        { t:"c", q:"¿Cómo persistir datos entre ejecuciones?", o:["Guardándolos en un archivo (texto, JSON, CSV)","No se puede","Enviándolos por email","Usando variables globales"], e:"Los archivos permiten que los datos sobrevivan al cierre." },
+        { t:"c", q:"¿Qué es JSON?", o:["Un formato de texto para guardar datos estructurados","Un lenguaje de programación","Una base de datos","Un error"], e:"JSON permite guardar listas y diccionarios en archivos." },
+        { t:"c", q:"¿Qué hace open(\"archivo.txt\", \"w\")?", o:["Abre el archivo para escribir (sobrescribe si existe)","Solo para leer","Lo borra siempre","Crea una carpeta"], e:"El modo \"w\" escribe, creando o sobreescribiendo el archivo." }
+      ],
+      [
+        { t:"c", q:"En la defensa, ¿quién tiene que poder explicar cada función?", o:["Todos los integrantes, con sus propias palabras","Solo quien la programó","Solo el Documentador","Nadie, alcanza con mostrarla"], e:"Los roles ordenan el trabajo, pero todos deben entender todo el código." },
+        { t:"c", q:"¿Qué hacer si te trabás en la defensa?", o:["Respirar, explicar lo que sí sabés y pedir un momento","Rendirse","Culpar al grupo","Salir del aula"], e:"La calma y la honestidad valen más que la perfección." },
+        { t:"c", q:"¿Cómo prepararse para la defensa?", o:["Repasando el código, explicándolo en voz alta y simulando preguntas","Leyendo la consigna una vez","Memorizando sin entender","No hace falta"], e:"Ensayar en voz alta revela qué no se entiende bien." },
+        { t:"c", q:"¿Qué demuestra una buena defensa?", o:["Que entendiste tu código y podés explicar cada decisión","Que lo hiciste rápido","Que usaste muchas librerías","Que copiaste bien"], e:"La defensa evalúa comprensión, no velocidad." }
+      ]
+    ]
+  }
+};
+
+// ============================================================
+// SISTEMA DE SELECCIÓN POR ID DE ALUMNO
+// ============================================================
+
+// Función que selecciona una variante según el ID del alumno (1-26)
+function seleccionarVersion(slot, alumnoId) {
+  // Usamos el ID para elegir una variante (módulo para ciclar)
+  const index = (alumnoId - 1) % slot.length;
+  return slot[index];
+}
+
+// Genera las preguntas específicas para un alumno
+function generarVersion(alumnoId) {
+  const version = {};
+  for (const key in BANK) {
+    const nivel = BANK[key];
+    version[key] = {
+      n: nivel.n,
+      ic: nivel.ic,
+      t: nivel.t,
+      badge: nivel.badge,
+      story: nivel.story,
+      ch: nivel.slots.map(slot => seleccionarVersion(slot, alumnoId))
+    };
+  }
+  return version;
+}
+
+// ============================================================
+// ESTADO Y UTILIDADES
+// ============================================================
+
+const app = document.getElementById("app");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const shuf = (a) => { 
+  let b; 
+  do { 
+    b = a.slice(); 
+    for (let i = b.length - 1; i > 0; i--) { 
+      const j = Math.floor(Math.random() * (i + 1)); 
+      [b[i], b[j]] = [b[j], b[i]]; 
+    } 
+  } while (a.length > 1 && JSON.stringify(b) === JSON.stringify(a)); 
+  return b; 
+};
+
+const getParam = (name) => new URLSearchParams(window.location.search).get(name) || "";
+
+let SAVE = { stars: [0, 0, 0, 0, 0], name: "", email: "", alumnoId: 0 };
+try { const r = JSON.parse(localStorage.getItem("palmar2026") || "null"); if (r && r.stars) SAVE = r; } catch (e) {}
+const persist = () => { try { localStorage.setItem("palmar2026", JSON.stringify(SAVE)); } catch (e) {} };
+
+let LV = []; // Se llena según el alumno
+let G = { lv: 0, i: 0, lives: 3, xp: 0, tries: 0, ans: [], pool: [], opts: [], locked: false };
+const stars = (n) => "★".repeat(n) + "☆".repeat(3 - n);
+const totalXP = () => SAVE.stars.reduce((a, b) => a + b, 0);
+
+// ⚠️ PEGA AQUÍ LA URL DE TU GOOGLE APPS SCRIPT
+const API_URL = "https://script.google.com/macros/s/TU_CODIGO_AQUI/exec";
+
+// ============================================================
+// PANTALLAS
+// ============================================================
+
+function home() {
+  const urlName = getParam("nombre");
+  const urlEmail = getParam("email");
+  const urlId = parseInt(getParam("id")) || 0;
+  
+  SAVE.name = urlName || SAVE.name;
+  SAVE.email = urlEmail || SAVE.email;
+  SAVE.alumnoId = urlId || SAVE.alumnoId;
+
+  // Si no hay ID, no se puede jugar (evita versiones duplicadas)
+  if (!SAVE.alumnoId || SAVE.alumnoId < 1 || SAVE.alumnoId > 26) {
+    app.innerHTML = `<div class="card">
+      <div class="big">⚠️</div>
+      <h1>Enlace inválido</h1>
+      <p>Este juego requiere un enlace personalizado con tu número de alumno. Pedile a tu docente el enlace correcto.</p>
+      <p style="color:var(--mut);font-size:13px">El enlace debe tener el formato: <code>?nombre=...&email=...&id=1</code> (del 1 al 26)</p>
+    </div>`;
+    return;
+  }
+
+  // Genera la versión única de preguntas para este alumno
+  LV = generarVersion(SAVE.alumnoId);
+
+  const unlocked = (i) => i === 0 || SAVE.stars[i - 1] > 0;
+  const nameReadonly = urlName ? "readonly" : "";
+  const emailReadonly = urlEmail ? "readonly" : "";
+
+  app.innerHTML = `<div class="card">
+    <span class="version-tag">🎯 Versión #${SAVE.alumnoId}</span>
+    <p class="kick">E.T. Nuestra Señora de Itatí · 4to Año · 2026</p>
+    <div class="big">🎮</div><h1>Misión Palmar</h1>
+    <p>Ayudá a los comercios de San Luis del Palmar a salir del cuaderno y pasar a Python. Completá los 5 niveles, cuidá tus vidas y ganá una insignia por cada uno.</p>
+    <label for="nm" style="font-size:13px;font-weight:700">Tu nombre</label>
+    <input type="text" id="nm" value="${esc(SAVE.name)}" maxlength="40" ${nameReadonly} style="margin-bottom:12px">
+    <label for="em" style="font-size:13px;font-weight:700">Tu correo institucional</label>
+    <input type="email" id="em" placeholder="alumno@escuela.edu" value="${esc(SAVE.email)}" maxlength="50" ${emailReadonly}>
+  </div>
+  <div class="map">${LV.map((l, i) => `<button class="node" data-lv="${i}" ${unlocked(i) ? "" : "disabled"}>
+    <span class="ic">${unlocked(i) ? l.ic : "🔒"}</span>
+    <span><b>Nivel ${i + 1} · ${l.n}</b><small>${l.t}</small></span>
+    <span class="stars">${stars(SAVE.stars[i])}</span>
+  </button>`).join("")}</div>
+  <p style="margin-top:14px"><button class="btn ghost" id="rs">Reiniciar mi progreso</button></p>`;
+
+  if (!urlName) document.getElementById("nm").oninput = (e) => { SAVE.name = e.target.value; persist(); };
+  if (!urlEmail) document.getElementById("em").oninput = (e) => { SAVE.email = e.target.value; persist(); };
+  
+  app.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => start(+b.dataset.lv)));
+  document.getElementById("rs").onclick = () => { 
+    if (confirm("¿Borrar todo tu progreso?")) { 
+      SAVE = { stars: [0, 0, 0, 0, 0], name: urlName, email: urlEmail, alumnoId: urlId }; 
+      persist(); home(); 
+    } 
+  };
+}
+
+function start(lv) {
+  G = { lv, i: 0, lives: 3, xp: 0, tries: 0, ans: [], pool: [], opts: [], locked: false };
+  const l = LV[lv];
+  app.innerHTML = `<div class="card"><p class="kick">Nivel ${lv + 1} · ${l.n}</p><div class="big">${l.ic}</div><h2>${l.t}</h2><p>${l.story}</p><p><b>${l.ch.length} desafíos · 3 vidas.</b> Tus estrellas dependen de cuántas vidas te queden.</p><button class="btn" id="go">¡Empezar!</button> <button class="btn ghost" id="bk">Volver al mapa</button></div>`;
+  document.getElementById("go").onclick = challenge; document.getElementById("bk").onclick = home;
+}
+
+function head() {
+  const l = LV[G.lv], n = l.ch.length;
+  return `<div class="top"><span>${l.ic} ${l.n} · ${G.i + 1}/${n}</span><span class="hearts" aria-label="${G.lives} vidas">${"♥".repeat(G.lives)}${"♡".repeat(3 - G.lives)}</span></div><div class="bar"><i style="width:${(G.i / n) * 100}%"></i></div>`;
+}
+
+function challenge() {
+  const c = LV[G.lv].ch[G.i]; G.tries = 0; G.locked = false; G.ans = [];
+  if (c.t === "o") G.pool = shuf(c.s.map((x, i) => ({ x, id: i })));
+  if (c.t === "c") G.opts = shuf(c.o.map((x, i) => ({ x, ok: i === 0 })));
+  draw();
+}
+
+function draw() {
+  const c = LV[G.lv].ch[G.i]; let body = "";
+  if (c.t === "c") body = G.opts.map((o, k) => `<button class="opt ${o.s || ""}" data-k="${k}" ${o.s || G.locked ? "disabled" : ""}>${esc(o.x)}</button>`).join("");
+  if (c.t === "b") body = c.l.map((x, k) => `<button class="ln ${(G.bad && G.bad[k]) || ""}" data-k="${k}" ${G.locked || (G.bad && G.bad[k]) ? "disabled" : ""}>${esc(x)}</button>`).join("");
+  if (c.t === "o") body = `<div class="slot">${G.ans.map((id, p) => `<button class="ln" data-rm="${p}" ${G.locked ? "disabled" : ""}>${esc(c.s[id])}</button>`).join("")}</div>${G.pool.filter((o) => !G.ans.includes(o.id)).map((o) => `<button class="ln" data-add="${o.id}" ${G.locked ? "disabled" : ""}>${esc(o.x)}</button>`).join("")}${G.locked ? "" : `<p style="margin-top:10px"><button class="btn" id="chk" ${G.ans.length === c.s.length ? "" : "disabled"}>Comprobar</button></p>`}`;
+  app.innerHTML = head() + `<div class="card"><p class="kick">${{ c: "Elegí", o: "Ordená", b: "Encontrá el error" }[c.t]}</p><h2 style="font-family:system-ui;font-size:1.1rem">${esc(c.q)}</h2>${body}<div id="fb"></div></div>`;
+  if (G.msg) { document.getElementById("fb").innerHTML = G.msg; }
+  app.querySelectorAll("[data-k]").forEach((b) => (b.onclick = () => pick(+b.dataset.k)));
+  app.querySelectorAll("[data-add]").forEach((b) => (b.onclick = () => { G.ans.push(+b.dataset.add); G.msg = ""; draw(); }));
+  app.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { G.ans.splice(+b.dataset.rm, 1); G.msg = ""; draw(); }));
+  const ck = document.getElementById("chk"); if (ck) ck.onclick = () => verify(G.ans.every((id, p) => c.s[id] === c.s[p]));
+}
+
+function pick(k) {
+  const c = LV[G.lv].ch[G.i];
+  if (c.t === "c") { const o = G.opts[k]; if (o.ok) { o.s = "ok"; right(); } else { o.s = "no"; wrong(); } }
+  if (c.t === "b") { G.bad = G.bad || {}; if (k === c.b) { G.bad[k] = "ok"; right(); } else { G.bad[k] = "no"; wrong(); } }
+}
+
+function verify(ok) { ok ? right() : wrong("Algo no está en su lugar. Mirá qué depende de qué."); }
+
+function right() {
+  const c = LV[G.lv].ch[G.i]; G.xp += G.tries === 0 ? 100 : 50; G.locked = true;
+  G.msg = `<div class="fb ok" role="status"><b>¡Correcto!</b> ${esc(c.e)}</div><button class="btn" id="nx">${G.i + 1 < LV[G.lv].ch.length ? "Siguiente →" : "Terminar nivel"}</button>`;
+  draw(); G.msg = ""; G.bad = null;
+  document.getElementById("nx").onclick = () => { G.i++; G.msg = ""; G.i < LV[G.lv].ch.length ? challenge() : done(); };
+}
+
+function wrong(t) {
+  G.tries++; G.lives--;
+  if (G.lives <= 0) { G.bad = null; G.msg = ""; return lose(); }
+  G.msg = `<div class="fb no" role="status"><b>Casi.</b> ${esc(t || "Probá con otra opción.")} Te quedan ${G.lives} vida${G.lives > 1 ? "s" : ""}.</div>`; draw();
+}
+
+function lose() {
+  app.innerHTML = `<div class="card"><div class="big">💥</div><h2>Te quedaste sin vidas</h2><p>No pasa nada: así se aprende. Repasá la guía y volvé a intentarlo.</p><button class="btn" id="rt">Reintentar nivel</button> <button class="btn ghost" id="bk">Mapa</button></div>`;
+  document.getElementById("rt").onclick = () => start(G.lv); document.getElementById("bk").onclick = home;
+}
+
+function done() {
+  const l = LV[G.lv], s = Math.max(1, G.lives); SAVE.stars[G.lv] = Math.max(SAVE.stars[G.lv], s); persist();
+  const last = G.lv === LV.length - 1;
+  app.innerHTML = `<div class="card" style="text-align:center"><div class="big">🏅</div><p class="kick">Nivel completado</p><h2>${l.badge}</h2><p style="font-size:1.6rem;color:var(--gold)">${stars(s)}</p><p>+${G.xp} puntos en este nivel</p>
+  ${last ? `<button class="btn" id="nx">Ver mi diploma</button>` : `<button class="btn" id="nx">Siguiente nivel →</button>`} <button class="btn ghost" id="bk">Mapa</button></div>`;
+  document.getElementById("nx").onclick = () => (last ? diploma() : start(G.lv + 1)); document.getElementById("bk").onclick = home;
+}
+
+function enviarEstadisticas() {
+  const nivelCompletado = G.lv + 1;
+  const estrellasNivel = SAVE.stars[G.lv];
+  const xpTotal = totalXP();
+  
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      nombre: SAVE.name || "Sin nombre",
+      email: SAVE.email || "Sin email",
+      alumnoId: SAVE.alumnoId,
+      nivel: nivelCompletado,
+      estrellas: estrellasNivel,
+      xp: xpTotal
+    })
+  })
+  .then(() => console.log("✅ Datos guardados en Google Sheets"))
+  .catch(err => console.error("❌ Error al guardar:", err));
+}
+
+function diploma() {
+  enviarEstadisticas();
+  const t = totalXP();
+  app.innerHTML = `<div class="card dip"><div class="big">🎓</div><p class="kick">Escuela Técnica Nuestra Señora de Itatí · 2026</p><h1>Diploma de Programador/a Palmar</h1><p>Se otorga a</p><h2 style="font-size:1.8rem">${esc(SAVE.name || "tu nombre acá")}</h2><p>por completar los 5 niveles de la Misión Palmar: Datos, Python, Git, IA y Defensa oral.</p><p style="font-size:1.4rem;color:var(--gold)">${t} de 15 estrellas</p><p style="color:var(--mut);font-size:14px">Versión #${SAVE.alumnoId} · Esto es un juego de práctica. La evaluación del Proyecto Integrador la hace tu docente.</p></div><button class="btn" id="bk">Volver al mapa</button>`;
+  document.getElementById("bk").onclick = home;
+}
+
+home();
+</script>
+</body>
+</html>
