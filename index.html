@@ -234,22 +234,23 @@ function seleccionarVersion(slot, alumnoId) {
 }
 
 // Genera las preguntas específicas para un alumno
+// Genera las preguntas específicas para un alumno
 function generarVersion(alumnoId) {
-  const version = {};
+  const version = []; // ← Cambiado de {} a []
   for (const key in BANK) {
     const nivel = BANK[key];
-    version[key] = {
+    version.push({ // ← Usamos push en lugar de version[key] =
       n: nivel.n,
       ic: nivel.ic,
       t: nivel.t,
       badge: nivel.badge,
       story: nivel.story,
       ch: nivel.slots.map(slot => seleccionarVersion(slot, alumnoId))
-    };
+    });
   }
   return version;
 }
-
+ 
 // ============================================================
 // ESTADO Y UTILIDADES
 // ============================================================
